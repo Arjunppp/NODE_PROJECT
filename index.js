@@ -1,139 +1,30 @@
+/* 
+* define connection.js -- for database connection --DONE
+* services -- write the databse queries -- here we import models -DONE
+* controller folder ---write function --DONE
+* model folder -- write scheme and model --DONE
+* view --folder for the ejs template engine
+* handle the error using try catch block. --done --created an custom error to handle the error
+*/
+
 import express from 'express';
-import mongoose from 'mongoose';
+import { databaseConnection } from './connection.js';
+import { customErrorHandler } from './middleware/custom_error.js';
+import router from './routes/employee_routes.js';
 
-//Connecting to mongo database
-mongoose.connect('mongodb://localhost:27017/employeeManagement').then(() => { console.log('Database connected') }).catch((err) => { console.log('Error in connecting database', port) });
-
-
-//Schema for cerating database -- 
-
-const Schema = mongoose.Schema;
-
-
-
-
-const userSchema = new Schema({
-    saluatation: String,
-    firstName: String,
-    lastName: String,
-    email: { type: String },
-    phone: { type: String, },
-    gender: { type: String, },
-    qualification: { type: String },
-    adress: String,
-    city: String,
-    state: String,
-    Country: String,
-    userName: String,
-    password: String
-});
-
-//Model Creation using schema
-const Employee = mongoose.model('Employee', userSchema, 'employeeDetails');
-
-///Express prot defenition
-const port = 5000;
-const app = express();
-
-//Middle aware to parse the body fron the request
+ const app = express();
+ const port = 5000;
 
 app.use(express.json());
 
+app.use(customErrorHandler);
+
+await databaseConnection();
+
+app.use('/' , router);
 
 
-///Function that act as controller
-
-async function getAllUser() {
-
-    let allUsers = await Employee.find({});
-    return allUsers;
-};
-
-
-async function createUser(userData) {
-    try {
-        let data = userData;
-
-        let result = await Employee.insertMany(data);
-        return result;
-    }
-    catch (err) {
-        console.log('error occured', err);
-    }
-
-}
-
-async function deleteUser(id)
+app.listen(port , ()=> 
 {
-    let userId = id;
-    let result = await Employee.findByIdAndDelete({_id:userId});
-    console.log(result);
-}
-
-async function getUserById(id)
-{
-    let userId = id;
-    let userData = await Employee.find({_id:userId});
-    return userData;
-}
-
-async function updateUser(id, data)
-{
-    let userId = id;
-    let userData = data;
-    let result = await Employee.findByIdAndUpdate(userId,  userData, { new: true, runValidators: true } );
-    return result;
-
-}
-
- //Routers to deal with the CRUD
-app.get('/', async (req, res) => {
-    let users = await getAllUser();
-    res.send(users);
+    console.log("App is running on port" ,port);
 });
-
-app.get('/:id' , async(req,res) => 
-{
-    let userid  = req.params.id;
-    let data = await getUserById(userid);
-    res.send(data);
-})
-
-
-app.post('/', async (req, res) => {
-    try {
-        let data = req.body;
-        let result = await createUser(data);
-      
-        res.send({message: "Employee Created Sucessdully",id:result[0]._id});
-    }
-    catch (error) {
-        res.send('Error', error)
-
-    }
-});
-
-
-app.delete('/:id',async (req ,res) => 
-{
-    let id = req.params.id;
-     await deleteUser(id);
-     res.send("user Deleted sucessfully");
-});
-
-app.put('/:id' ,async (req,res) => 
-{
-    let id = req.params.id;
-    let data = req.body;
-    console.log(id , data);
-
-    let result = await updateUser(id , data);
-    console.log(result);
-    res.send("User Updated sucessfullly");
-
-})
-
-
-app.listen(port, () => {
-    console.log('Port is running on port', port);
-})
